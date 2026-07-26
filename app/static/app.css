@@ -1,0 +1,180 @@
+:root {
+  --bg: #0e1014;
+  --panel: #161a21;
+  --line: #262c37;
+  --text: #dde3ec;
+  --muted: #7f8a9c;
+  --accent: #4ad6a0;
+  --warn: #e8b84b;
+  --link: #58a6ff;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  background: var(--bg);
+  color: var(--text);
+  font: 13px/1.5 "Segoe UI", system-ui, sans-serif;
+}
+
+#canvas {
+  position: fixed;
+  inset: 0;
+  display: block;
+  cursor: grab;
+}
+#canvas.dragging { cursor: grabbing; }
+
+#panel {
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: 280px;
+  height: 100%;
+  padding: 16px;
+  overflow-y: auto;
+  background: color-mix(in srgb, var(--panel) 92%, transparent);
+  border-left: 1px solid var(--line);
+  backdrop-filter: blur(8px);
+}
+
+#panel h1 {
+  margin: 0;
+  font-size: 15px;
+  letter-spacing: .02em;
+}
+#panel h1 span {
+  display: block;
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: .12em;
+}
+
+#panel h2 {
+  margin: 0 0 6px;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .14em;
+  color: var(--muted);
+}
+
+#panel section {
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+}
+
+.status {
+  margin-top: 10px;
+  padding: 5px 9px;
+  border-radius: 999px;
+  font-size: 11px;
+  display: inline-block;
+}
+.status.offline { background: #2a1d1d; color: #d98a8a; }
+.status.online  { background: #16281f; color: var(--accent); }
+
+.map-name { margin: 0; font-size: 15px; font-weight: 600; }
+.muted { color: var(--muted); margin: 2px 0 0; font-size: 12px; }
+
+.stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 0; }
+.stats div { margin: 0; }
+.stats dt { color: var(--muted); font-size: 10px; text-transform: uppercase; letter-spacing: .1em; }
+.stats dd { margin: 2px 0 0; font-size: 19px; font-variant-numeric: tabular-nums; }
+
+.warps { list-style: none; margin: 8px 0 0; padding: 0; }
+.warps li {
+  padding: 5px 0;
+  border-top: 1px solid var(--line);
+  font-size: 12px;
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+}
+.warps .idx {
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+  min-width: 18px;
+}
+.warps .dest { color: var(--link); }
+.warps .unknown { color: var(--muted); font-style: italic; }
+.warps .both::after { content: " ⇄"; color: var(--accent); }
+
+.badge {
+  display: inline-block;
+  margin-left: 4px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: #23303f;
+  color: var(--link);
+  font-size: 10px;
+  letter-spacing: 0;
+}
+
+.pending { list-style: none; margin: 6px 0 0; padding: 0; max-height: 260px; overflow-y: auto; }
+.pending .zone {
+  margin-top: 8px;
+  color: var(--muted);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: .1em;
+}
+.pending .entry {
+  padding: 3px 0 3px 8px;
+  font-size: 12px;
+  cursor: pointer;
+  border-left: 2px solid transparent;
+}
+.pending .entry:hover { border-left-color: var(--accent); color: #fff; }
+.pending .entry .count { color: var(--muted); }
+
+.toggle { display: flex; gap: 8px; align-items: center; margin-bottom: 6px; cursor: pointer; }
+.toggle input { accent-color: var(--accent); }
+
+button {
+  margin-top: 8px;
+  padding: 6px 12px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: #1d232c;
+  color: var(--text);
+  font: inherit;
+  cursor: pointer;
+}
+button:hover { border-color: var(--accent); }
+
+#panel footer { margin-top: 20px; }
+
+#error {
+  position: fixed;
+  z-index: 20;
+  left: 16px;
+  bottom: 16px;
+  max-width: 60ch;
+  padding: 10px 14px;
+  border: 1px solid #6b2f2f;
+  border-radius: 6px;
+  background: #241618;
+  color: #f0c0c0;
+  font-family: ui-monospace, Consolas, monospace;
+  font-size: 12px;
+  white-space: pre-wrap;
+}
+
+#tooltip {
+  position: fixed;
+  z-index: 10;
+  padding: 4px 8px;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  background: #10141a;
+  font-size: 12px;
+  pointer-events: none;
+  white-space: nowrap;
+}

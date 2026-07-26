@@ -1,0 +1,16 @@
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Generado por tools/ a partir de pokeemerald: se reconstruye con los tres
+# comandos del README, no hace falta versionarlo.
+assets/layouts/
+data/static/
+
+# Progreso de las partidas.
+runs/
+
+# Vuelcos de tools/preview_world.py.
+preview_*.png
+!preview_world.png

@@ -1,0 +1,19 @@
+{
+  "_comentario": [
+    "Nombres en castellano. Cada clave es un identificador de mapa (MAP_*) o",
+    "de zona (MAPSEC_*), y su valor el nombre que quieras ver en el asistente.",
+    "Lo que no aparezca aqui se queda con el nombre generado en ingles.",
+    "Tras editarlo hay que volver a lanzar tools/build_data.py."
+  ],
+
+  "MAPSEC_LITTLEROOT_TOWN": "Pueblo Escaso",
+  "MAPSEC_PETALBURG_CITY": "Ciudad Petalia",
+  "MAPSEC_SLATEPORT_CITY": "Ciudad Portual",
+  "MAPSEC_MAUVILLE_CITY": "Ciudad Malvalona",
+  "MAPSEC_RUSTBORO_CITY": "Ciudad Férrica",
+  "MAPSEC_FORTREE_CITY": "Ciudad Arborada",
+  "MAPSEC_LILYCOVE_CITY": "Ciudad Calagua",
+  "MAPSEC_MOSSDEEP_CITY": "Ciudad Algaria",
+  "MAPSEC_SOOTOPOLIS_CITY": "Arrecípolis",
+  "MAPSEC_EVER_GRANDE_CITY": "Ciudad Colosalia"
+}
