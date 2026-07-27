@@ -29,6 +29,10 @@ LITTLEROOT = "MAP_LITTLEROOT_TOWN"
 ROUTE101 = "MAP_ROUTE101"
 SKY_PILLAR_TOP = "MAP_SKY_PILLAR_TOP"
 SKY_PILLAR_5F = "MAP_SKY_PILLAR_5F"
+# El caso que se vio fallando en una partida real: la escalera de la Torre
+# Fantasma (warp 1, en 15,2) llevaba a la Cueva Granito B2F.
+MIRAGE_1F = "MAP_MIRAGE_TOWER_1F"
+GRANITE_B2F = "MAP_GRANITE_CAVE_B2F"
 
 
 def read(name: str):
@@ -223,6 +227,87 @@ def test_un_hueco_en_el_muestreo_no_inventa_una_puerta(make_tracker, at):
 
     assert links_of(events) == []
     assert run.links == {}
+
+
+def test_la_posicion_de_destino_llega_antes_que_el_cambio_de_mapa(make_tracker, at):
+    """Durante el fundido el bloque de guardado se adelanta, y no es un warp.
+
+    Cruzando una puerta hay muestras en las que la posicion ya es la del otro
+    lado pero el mapa sigue siendo el de origen. Tomar ese salto por una
+    puerta registraba un enlace del mapa consigo mismo que ademas se quedaba
+    en el sitio del bueno: la escalera no aparecia unida a nada.
+    """
+    tracker, run = make_tracker
+    events = tracker.replay([
+        at(MIRAGE_1F, 15, 4, warp=0),
+        at(MIRAGE_1F, 15, 3, warp=0),
+        at(MIRAGE_1F, 15, 2, warp=0),        # pisa la escalera (warp 1)
+        at(MIRAGE_1F, 29, 13, warp=0),       # posicion del destino, mapa viejo
+        at(GRANITE_B2F, 29, 13, warp=0),
+    ])
+
+    links = links_of(events)
+    assert len(links) == 1
+    assert (links[0]["from_map"], links[0]["from_warp"]) == (MIRAGE_1F, 1)
+    assert (links[0]["to_map"], links[0]["to_warp"]) == (GRANITE_B2F, 0)
+    assert list(run.links) == [f"{MIRAGE_1F}:1"]
+
+
+def test_un_fundido_largo_no_echa_la_puerta_del_historial(make_tracker, at):
+    """El fundido dura mucho mas que el muestreo: llegan muestras repetidas.
+
+    Con el historial contando muestras sueltas en vez de posiciones, esas
+    repeticiones expulsaban la casilla de la escalera y la transicion se
+    quedaba sin puerta de origen.
+    """
+    tracker, _ = make_tracker
+    samples = [at(MIRAGE_1F, 15, 3, warp=0), at(MIRAGE_1F, 15, 2, warp=0)]
+    samples += [at(MIRAGE_1F, 29, 13, warp=0)] * 30
+    samples.append(at(GRANITE_B2F, 29, 13, warp=0))
+
+    links = links_of(tracker.replay(samples))
+    assert len(links) == 1
+    assert (links[0]["from_map"], links[0]["from_warp"]) == (MIRAGE_1F, 1)
+    assert links[0]["to_map"] == GRANITE_B2F
+
+
+def test_esperar_quieto_sobre_una_puerta_no_la_pierde(make_tracker, at):
+    """La misma casilla repetida ocupa un solo hueco del historial."""
+    tracker, _ = make_tracker
+    samples = [at(MIRAGE_1F, 15, 3, warp=0)]
+    samples += [at(MIRAGE_1F, 15, 2, warp=0)] * 40
+    samples.append(at(GRANITE_B2F, 29, 13, warp=0))
+
+    links = links_of(tracker.replay(samples))
+    assert len(links) == 1
+    assert (links[0]["from_map"], links[0]["from_warp"]) == (MIRAGE_1F, 1)
+
+
+def test_un_salto_sin_cambiar_de_warp_no_registra_nada(make_tracker, at):
+    """Aparecer lejos con el mismo warp_id no es haber cruzado una puerta."""
+    tracker, run = make_tracker
+    events = tracker.replay([
+        at(MIRAGE_1F, 15, 2, warp=0),     # sobre la escalera
+        at(MIRAGE_1F, 3, 3, warp=0),      # salto imposible, mismo warp_id
+    ])
+
+    assert links_of(events) == []
+    assert specials_of(events) == []
+    assert run.links == {}
+
+
+def test_destino_sin_warp_id_se_deduce_por_la_casilla(make_tracker, at):
+    """Un destino dinamico deja warp_id en -1; queda la posicion de llegada."""
+    tracker, _ = make_tracker
+    events = tracker.replay([
+        at(MIRAGE_1F, 15, 3, warp=0),
+        at(MIRAGE_1F, 15, 2, warp=0),
+        at(GRANITE_B2F, 29, 13, warp=-1),   # cae justo en la puerta 0
+    ])
+
+    links = links_of(events)
+    assert len(links) == 1
+    assert (links[0]["to_map"], links[0]["to_warp"]) == (GRANITE_B2F, 0)
 
 
 def test_mapas_visitados_y_persistencia(make_tracker, at):

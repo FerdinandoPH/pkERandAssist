@@ -142,6 +142,7 @@ tools/render_maps.py    pokeemerald -> assets/layouts/*.png (+ mipmaps .4 y .16)
 tools/build_layout.py   ensambla Hoenn por sus `connections` y empaqueta interiores
 tools/preview_world.py  vuelca el lienzo entero a un PNG, para revisarlo
 tools/simulate.py       finge ser el emulador
+tools/replay.py         reproduce una traza grabada, para ver qué se detectó
 tools/build_exe.py      congela launcher.py con PyInstaller (opcional)
 
 bridge/pker_bridge.lua     script que corre dentro de mGBA
@@ -169,8 +170,12 @@ puertas.
 
 ## Limitaciones conocidas
 
-- Cargar un *savestate* puede registrar una transición rara, que aparecerá
-  clasificada como `script`. No afecta a las puertas ya confirmadas.
+- Cargar un *savestate* que te deje en otro mapa puede registrar una
+  transición rara, clasificada como `script`. No afecta a las puertas ya
+  confirmadas.
+- Si una puerta no llegara a aparecer unida, `python launcher.py --trace`
+  graba lo que manda el emulador y `python tools/replay.py <traza>
+  --sospechosas` dice qué cambios de mapa se quedaron sin registrar.
 - Vuelo, Teleportación y Cuerda Huida revelan el mapa de destino pero no crean
   ninguna conexión, que es lo correcto: no son puertas.
 - Tres conexiones entre mapas del juego original no son simétricas (Pueblo

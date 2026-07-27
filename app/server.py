@@ -23,7 +23,7 @@ from fastapi.staticfiles import StaticFiles
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from app.bridge import BridgeServer, build_tracker  # noqa: E402
+from app.bridge import BridgeServer, build_tracker, trace_path_from_env  # noqa: E402
 from app.datafiles import (  # noqa: E402
     ASSETS_DIR, DataMissing, data_ready, load_json, setup_hint,
 )
@@ -79,6 +79,7 @@ if data_ready():
     bridge = BridgeServer(
         tracker,
         on_connection=lambda ok: hub.broadcast_soon({"type": "bridge", "connected": ok}),
+        trace=trace_path_from_env(),
     )
 
 

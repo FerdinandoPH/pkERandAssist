@@ -33,11 +33,30 @@ mismo warp del mismo mapa. Sin ese filtro, cualquier hueco en el muestreo
 sobre una casilla con puerta inventa un enlace. Lo cubre
 `test_un_hueco_en_el_muestreo_no_inventa_una_puerta`.
 
-**4. Cambiar de mapa no es la única señal de transición.**
+**4. Cambiar de mapa no es la única señal de transición, pero saltar de sitio
+no es ninguna.**
 En el gimnasio de Algaria los teletransportes llevan al **mismo mapa**
-(`MAP_MOSSDEEP_CITY_GYM` → `MAP_MOSSDEEP_CITY_GYM`). El detector mira tres
-cosas: cambio de mapa, cambio de `warp_id`, o salto de posición imposible.
-Quitar cualquiera de las tres pierde casos reales.
+(`MAP_MOSSDEEP_CITY_GYM` → `MAP_MOSSDEEP_CITY_GYM`), así que el detector mira
+dos cosas: cambio de mapa **o** cambio de `warp_id`. Quitar cualquiera de las
+dos pierde casos reales.
+
+Hubo una tercera señal, «salto de posición imposible» (`TELEPORT_DISTANCE`), y
+**se quitó porque inventaba puertas**: durante el fundido de un warp llegan
+muestras con la posición del destino y el mapa todavía sin cambiar, y ese
+salto se registraba como una puerta del mapa consigo mismo que además ocupaba
+la clave `mapa:warp` de la buena. Resultado: la puerta real no se dibujaba,
+unas veces sí y otras no según dónde cayera el muestreo. No aporta nada:
+el juego apunta en `warp_id` por qué puerta has entrado, así que sin cambio de
+`warp_id` no ha habido warp. Lo cubren
+`test_la_posicion_de_destino_llega_antes_que_el_cambio_de_mapa` y
+`test_un_salto_sin_cambiar_de_warp_no_registra_nada`.
+
+**4 bis. El historial guarda posiciones, no muestras.**
+`Tracker._remember()` no apunta una muestra si repite la casilla de la
+anterior. Un fundido dura mucho más que el muestreo (decenas de lecturas
+idénticas), y sin esto `HISTORY_DEPTH` se llenaba de repeticiones y expulsaba
+la casilla por la que se salió: la transición se quedaba sin origen. Lo cubre
+`test_un_fundido_largo_no_echa_la_puerta_del_historial`.
 
 **5. Ver el terreno y saber qué sitio es son cosas distintas.**
 `terrainVisible()` e `identityKnown()` en `app.js` no son redundantes. El modo
@@ -46,7 +65,15 @@ Quitar cualquiera de las tres pierde casos reales.
 ocultos**: dirían dónde hay puertas antes de llegar. Fundirlas otra vez en un
 solo predicado destriparía la partida.
 
-**6. Cambiar de partida no puede reasignar el objeto `Run`.**
+**6. En una puerta ya conocida manda la última lectura.**
+`Run.add_link()` **actualiza** el destino si ve otro distinto, en vez de
+conservar el primero. Cada puerta tiene un único destino, así que ver dos
+significa que uno estaba mal; quedarse con el primero dejaba esa puerta
+bloqueada para siempre en cuanto una transición inventada llegaba antes que la
+buena, y no había forma de arreglarlo sin borrar la partida entera. Lo cubre
+`test_un_destino_distinto_corrige_la_puerta`.
+
+**7. Cambiar de partida no puede reasignar el objeto `Run`.**
 El tracker guarda una referencia (`build_tracker(run, ...)` en `server.py`),
 así que `Run.switch_to()` recarga el contenido **dentro del mismo objeto**. Lo
 cubre `test_switch_to_conserva_el_objeto`, que compara `id()`. Y hay que
@@ -71,8 +98,12 @@ python tools/build_layout.py
 uvicorn app.server:app                  # http://127.0.0.1:8000
 
 # Probar
-pytest                                  # 57 tests, sin emulador
+pytest                                  # 64 tests, sin emulador
 python tools/simulate.py --walk 300 --delay 0.5   # finge ser mGBA end-to-end
+
+# Investigar una puerta que no se registra en una partida real
+python launcher.py --trace               # graba runs/trazas/traza-*.jsonl
+python tools/replay.py runs/trazas/traza-*.jsonl --sospechosas
 python tools/preview_world.py --scale 16 --out mapa.png
 ```
 
@@ -162,8 +193,7 @@ Están todas resueltas, pero si algo se toca conviene saberlas:
 | `SAVEBLOCK1_PTR` | `0x03005D8C` | puntero a `gSaveBlock1` en Esmeralda USA. El bloque **se mueve**, hay que seguir el puntero. Si la ROM lo desplaza: `bridge/pker_calibrate.lua` |
 | `SAMPLE_EVERY` | 4 frames | precisión suficiente para no perder la casilla de la puerta |
 | `WARP_SEARCH_RADIUS` | 1 | margen al buscar la puerta de salida |
-| `HISTORY_DEPTH` | 12 | muestras que se guardan para mirar hacia atrás |
-| `TELEPORT_DISTANCE` | 16 | **deliberadamente alto**: con 5 saltaba en falso |
+| `HISTORY_DEPTH` | 12 | **posiciones distintas** que se guardan para mirar hacia atrás. Contar muestras sueltas no vale: ver la regla 4 bis |
 | `METATILE_ID_MASK` | `0x03FF` | bits 0-9 del blockdata |
 | `NUM_METATILES_IN_PRIMARY` | 512 | ≥512 → tileset secundario |
 | `NUM_PALS_IN_PRIMARY` | 6 | paletas 0-5 primario, 6-12 secundario |
@@ -192,6 +222,7 @@ mapas serían inviables.
 | Quiero... | Voy a... |
 |---|---|
 | cambiar cómo se detectan las puertas | `app/tracker.py` + test en `tests/test_tracker.py` |
+| entender por qué una puerta real no se registró | grabar con `launcher.py --trace` y pasarla por `tools/replay.py --sospechosas`; la traza es lo que mandó el emulador, así que el fallo se reproduce en frío y se convierte en un test |
 | tocar la gestión de partidas | `app/state.py` + test en `tests/test_state.py`; los endpoints en `app/server.py` |
 | mover la cámara desde código | `centerAt`/`cameraTo` (salto puntual) o `setChaseTarget` (perseguir algo que se mueve) en `app.js`. **No** escribir `camera.x/y` a mano: `centerAt` es el único sitio |
 | añadir algo pinchable en el lienzo | `endpointAt` en `app.js` es el patrón: prioridad en `pointerup` antes de `mapAt`, y el radio de acierto sale de la misma función que usa el dibujado |
@@ -249,7 +280,7 @@ pasar por encima de un extremo de puerta y el salto al otro lado.
 ## Estado y pendientes
 
 Terminado y verificado sin ROM: extracción, render, ensamblado, puente,
-tracker, interfaz, gestión de partidas, lanzador, 57 tests en verde.
+tracker, interfaz, gestión de partidas, lanzador, 64 tests en verde.
 
 **Sin validar contra la ROM real** (requiere al usuario):
 
@@ -259,6 +290,7 @@ tracker, interfaz, gestión de partidas, lanzador, 57 tests en verde.
    identificar la puerta por el behavior del metatile pisado: los datos ya
    están en `warp_tiles.json`, solo faltaría la lógica en `_find_exit()`.
 
-Limitaciones asumidas: cargar un savestate puede generar una transición
-`script` espuria (inocua, no toca los links); Vuelo y Teletransporte revelan
+Limitaciones asumidas: cargar un savestate que deje al jugador en **otro**
+mapa genera una transición `script` espuria (inocua, no toca los links; dentro
+del mismo mapa ya no genera nada); Vuelo y Teletransporte revelan
 mapa pero no crean enlaces, que es lo correcto.

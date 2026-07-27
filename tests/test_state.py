@@ -80,6 +80,30 @@ def test_list_runs_cuenta_progreso(runs_dir):
     assert entries["una"]["error"] is False
 
 
+def test_un_destino_distinto_corrige_la_puerta(runs_dir):
+    """La ultima lectura manda: una puerta no puede quedarse bloqueada.
+
+    Una transicion inventada podia registrar un destino falso, y quedarse con
+    el primero dejaba esa puerta sin poder aprender el bueno nunca mas.
+    """
+    run = Run(name="una")
+    run.add_link("MAP_A", 0, "MAP_A", 1)     # lectura mala
+    entry = run.add_link("MAP_A", 0, "MAP_B", 3)
+
+    assert (entry["to_map"], entry["to_warp"]) == ("MAP_B", 3)
+    assert len(run.links) == 1
+    assert entry["return_seen"] is False
+
+
+def test_repetir_la_misma_puerta_no_reinicia_su_confirmacion(runs_dir):
+    run = Run(name="una")
+    run.add_link("MAP_A", 0, "MAP_B", 1)
+    run.add_link("MAP_B", 1, "MAP_A", 0)     # par confirmado
+    entry = run.add_link("MAP_A", 0, "MAP_B", 1)   # se vuelve a cruzar
+
+    assert entry["return_seen"] is True
+
+
 def test_list_runs_sobrevive_a_un_fichero_corrupto(runs_dir):
     Run(name="buena").visit("MAP_A")
     (runs_dir / "rota.json").write_text("{esto no es json", encoding="utf-8")

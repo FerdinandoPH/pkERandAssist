@@ -221,6 +221,15 @@ class Run:
                     "first_seen": time.time(),
                 }
                 self.links[key] = entry
+            elif (entry["to_map"], entry["to_warp"]) != (dest, dest_warp):
+                # Cada puerta tiene un unico destino, asi que ver otro
+                # significa que la lectura vieja era mala. Manda la ultima:
+                # quedarse con la primera dejaba la puerta bloqueada para
+                # siempre si una transicion inventada llegaba antes que la
+                # buena, y esa era justo la partida que no se podia arreglar
+                # sin borrarlo todo.
+                entry.update(to_map=dest, to_warp=dest_warp, return_seen=False,
+                             first_seen=time.time())
 
             back = self.links.get(reverse)
             if back and back["to_map"] == source and back["to_warp"] == source_warp:

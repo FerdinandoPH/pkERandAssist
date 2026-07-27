@@ -17,13 +17,11 @@ from typing import Callable, Iterable
 # Margen al buscar la puerta de origen: al cruzar, la ultima muestra puede
 # haberse tomado un instante antes de pisar la casilla exacta.
 WARP_SEARCH_RADIUS = 1
-# Cuantas muestras atras se mira dentro del mapa de origen.
+# Cuantas POSICIONES DISTINTAS atras se mira dentro del mapa de origen. Se
+# guardan posiciones y no muestras sueltas porque el fundido de una puerta dura
+# mucho mas que el muestreo: repetir la misma casilla veinte veces echaba del
+# historial la casilla de la puerta y la transicion se quedaba sin origen.
 HISTORY_DEPTH = 12
-# Salto de casillas que ningun movimiento normal produce entre dos muestras.
-# Muestreando cada 4 frames, ni corriendo ni en bici se avanza mas de un par
-# de casillas, pero el margen es amplio a proposito: un umbral bajo convierte
-# cualquier hueco en el muestreo en una puerta inventada.
-TELEPORT_DISTANCE = 16
 
 
 @dataclass(frozen=True)
@@ -127,7 +125,7 @@ class Tracker:
         if self.run is not None and self.run.visit(map_id):
             events.append({"type": "visit", "map": map_id})
 
-        self.history.append((map_id, sample))
+        self._remember(map_id, sample)
         self.current, self.current_map = sample, map_id
 
         events.append({
@@ -138,6 +136,20 @@ class Tracker:
             if self.on_event is not None:
                 self.on_event(event)
         return events
+
+    def _remember(self, map_id: str, sample: Sample) -> None:
+        """Anota la posicion en el historial, sin repetir la ultima.
+
+        Estar quieto (o esperar a que termine un fundido) manda decenas de
+        muestras identicas. Si cada una ocupara sitio, doce muestras dejarian
+        de ser doce pasos y la casilla por la que se salio quedaria fuera del
+        alcance de `_find_exit`.
+        """
+        if self.history:
+            last_map, last = self.history[-1]
+            if last_map == map_id and (last.x, last.y) == (sample.x, sample.y):
+                return
+        self.history.append((map_id, sample))
 
     def forget_history(self) -> None:
         """Olvida por donde ibas. Se llama al cambiar de partida.
@@ -170,18 +182,29 @@ class Tracker:
         """Decide si entre dos muestras ha habido un cambio de sitio."""
         changed_map = map_id != previous_map
         changed_warp = sample.warp_id != previous.warp_id
-        jumped = (abs(sample.x - previous.x) + abs(sample.y - previous.y)) >= TELEPORT_DISTANCE
 
-        # Sin cambio de mapa hace falta otra senal: los teletransportes del
-        # gimnasio de Algaria dejan al jugador en el mismo mapa.
-        if not (changed_map or changed_warp or jumped):
+        # Quedarse en el mismo mapa con el mismo warp_id no es cambiar de
+        # sitio, por lejos que aparezca el jugador. El juego apunta por que
+        # warp se ha entrado, asi que sin cambio de warp_id no ha habido
+        # puerta: ese salto es el bloque de guardado poniendose al dia durante
+        # el fundido (trae ya la posicion de destino con el mapa todavia sin
+        # cambiar) o un hueco en el muestreo. Tomarlo por una puerta inventaba
+        # un enlace del mapa consigo mismo que ademas tapaba el de verdad. Los
+        # teletransportes del gimnasio de Algaria si cambian el warp_id.
+        if not (changed_map or changed_warp):
             return None
 
         from_warp, exit_sample = self._find_exit(previous_map)
         exit_sample = exit_sample or previous
+        connection = changed_map and self._connects_to(previous_map, map_id)
         to_warp = sample.warp_id
         if to_warp is not None and not (0 <= to_warp < len(self.warps.get(map_id) or [])):
             to_warp = None
+        if from_warp is not None and to_warp is None and not connection:
+            # Destino sin warp_id utilizable (los warps dinamicos lo dejan en
+            # -1): habiendo salido por una puerta de verdad, la casilla en la
+            # que aparece el jugador dice a que puerta ha llegado.
+            to_warp = self.warp_at(map_id, sample.x, sample.y)
 
         if from_warp is not None and to_warp is not None:
             # Una puerta no puede llevar a su propia casilla: si sale eso, lo
@@ -192,7 +215,7 @@ class Tracker:
 
         # Sin puerta de origen: hay que averiguar por que te has movido.
         behavior = self.behavior_at(previous_map, exit_sample.x, exit_sample.y)
-        if changed_map and self._connects_to(previous_map, map_id):
+        if connection:
             kind = "connection"
         elif behavior is not None:
             kind = "tile"

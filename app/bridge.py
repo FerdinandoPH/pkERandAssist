@@ -8,14 +8,32 @@ que tambien funciona en modo consola (`python -m app.bridge`).
 from __future__ import annotations
 
 import json
+import os
 import socket
 import threading
+import time
+from pathlib import Path
 from typing import Callable
 
 from app.tracker import Sample, Tracker
 
 HOST = "127.0.0.1"
 PORT = 8765
+
+TRACES_DIR = Path(__file__).resolve().parent.parent / "runs" / "trazas"
+
+
+def trace_path_from_env() -> Path | None:
+    """Fichero de traza a usar segun PKER_TRACE, o None si no se pide.
+
+    PKER_TRACE=1 basta para grabar; tambien se acepta una ruta concreta.
+    """
+    value = os.environ.get("PKER_TRACE", "").strip()
+    if not value or value in {"0", "no", "false"}:
+        return None
+    if value in {"1", "si", "yes", "true"}:
+        return TRACES_DIR / f"traza-{time.strftime('%Y%m%d-%H%M%S')}.jsonl"
+    return Path(value).expanduser()
 
 
 class BridgeServer:
@@ -25,11 +43,17 @@ class BridgeServer:
         host: str = HOST,
         port: int = PORT,
         on_connection: Callable[[bool], None] | None = None,
+        trace: Path | None = None,
     ) -> None:
         self.tracker = tracker
         self.host = host
         self.port = port
         self.on_connection = on_connection
+        # Copia en bruto de lo que manda el emulador. Apagada por defecto:
+        # solo sirve para reproducir despues un fallo con tools/replay.py, y
+        # son unos 15 renglones por segundo.
+        self.trace = trace
+        self._trace_file = None
         self._server: socket.socket | None = None
         self._thread: threading.Thread | None = None
         self._stop = threading.Event()
@@ -95,10 +119,25 @@ class BridgeServer:
                 line, buffer = buffer.split(b"\n", 1)
                 self._handle_line(line)
 
+    def _write_trace(self, text: bytes) -> None:
+        if self.trace is None:
+            return
+        try:
+            if self._trace_file is None:
+                self.trace.parent.mkdir(parents=True, exist_ok=True)
+                self._trace_file = open(self.trace, "a", encoding="utf-8")
+                print(f"grabando traza en {self.trace}", flush=True)
+            self._trace_file.write(text.decode("utf-8", "replace") + "\n")
+            self._trace_file.flush()  # el fallo que se investiga puede colgarlo todo
+        except OSError as error:
+            print(f"aviso: no se puede escribir la traza ({error})", flush=True)
+            self.trace = None
+
     def _handle_line(self, line: bytes) -> None:
         text = line.strip()
         if not text:
             return
+        self._write_trace(text)
         try:
             data = json.loads(text)
             sample = Sample(
@@ -152,6 +191,7 @@ def main() -> int:
         tracker,
         on_connection=lambda ok: print(
             "mGBA conectado" if ok else "mGBA desconectado", flush=True),
+        trace=trace_path_from_env(),
     )
     server.start()
     print(f"esperando a mGBA en {HOST}:{PORT} (Ctrl+C para salir)", flush=True)

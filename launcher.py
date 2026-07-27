@@ -202,16 +202,21 @@ def wait_until_up(process: subprocess.Popen, port: int, host: str) -> bool:
     return False
 
 
-def serve(python: Path, host: str, port: int, open_browser: bool) -> int:
+def serve(python: Path, host: str, port: int, open_browser: bool,
+          trace: bool = False) -> int:
     """Levanta uvicorn y se queda esperando hasta que se cierre."""
     url = f"http://{host}:{port}"
     say(f"\nArrancando el asistente en {url} ...")
+    environment = dict(os.environ)
+    if trace:
+        environment["PKER_TRACE"] = "1"
+        say("Traza activada: se grabara en runs/trazas/ lo que mande el emulador.")
     # Sin --reload a proposito: el puente TCP se ata al 8765 y un recargado
     # deja el puerto ocupado.
     process = subprocess.Popen(
         [str(python), "-m", "uvicorn", "app.server:app",
          "--host", host, "--port", str(port)],
-        cwd=PROJECT_ROOT,
+        cwd=PROJECT_ROOT, env=environment,
     )
     try:
         if not wait_until_up(process, port, host):
@@ -248,6 +253,9 @@ def main(argv: list[str] | None = None) -> int:
                         help="regenerar datos e imagenes aunque ya esten")
     parser.add_argument("--setup-only", action="store_true",
                         help="preparar todo pero no arrancar el servidor")
+    parser.add_argument("--trace", action="store_true",
+                        help="grabar en runs/trazas/ lo que manda el emulador, "
+                             "para investigar una puerta que no se registra")
     args = parser.parse_args(argv)
 
     say("Asistente de mapa para Esmeralda Warp Randomizer")
@@ -268,7 +276,7 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
     return serve(python, args.host, pick_port(args.port, args.host),
-                 not args.no_browser)
+                 not args.no_browser, trace=args.trace)
 
 
 if __name__ == "__main__":

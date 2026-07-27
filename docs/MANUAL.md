@@ -258,11 +258,35 @@ encontrar la dirección correcta:
 4. Abre `bridge/pker_bridge.lua`, cambia la línea `local SAVEBLOCK1_PTR` por
    esa dirección y vuelve a cargar el script.
 
+### Cruzo una puerta y no aparece la línea
+
+Primero, comprueba que sea una puerta de verdad: caminar de una ruta a otra, o
+caer por un agujero, revela el mapa nuevo pero **no** dibuja línea, porque no
+hay dos puertas que unir. Vuelo y Teletransporte, igual.
+
+Si era una puerta y aun así no aparece, se puede grabar lo que manda el
+emulador y mirarlo después. Arranca el asistente con la traza puesta:
+
+```bash
+python launcher.py --trace
+```
+
+Juega y vuelve a cruzar esa puerta, cierra el asistente con Ctrl+C y pasa la
+grabación por:
+
+```bash
+python tools/replay.py runs/trazas/traza-*.jsonl --sospechosas
+```
+
+Lista los cambios de mapa que no acabaron registrados, con la posición y el
+`warp_id` de cada uno. Eso es exactamente lo que hace falta para arreglarlo, y
+la grabación no lleva nada de tu partida más que por dónde has ido pasando.
+
 ### Aparecen transiciones raras después de cargar un savestate
 
-Es esperado. Al cargar un savestate el juego «salta» sin cruzar ninguna
-puerta, y el asistente lo apunta como transición de tipo `script`. **No
-estropea las puertas ya confirmadas.**
+Es esperado si el savestate te deja en otro mapa: el juego «salta» sin cruzar
+ninguna puerta, y el asistente lo apunta como transición de tipo `script`. **No
+estropea las puertas ya confirmadas.** Dentro del mismo mapa no apunta nada.
 
 ### El mapa se ve lento
 
