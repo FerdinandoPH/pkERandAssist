@@ -34,11 +34,10 @@ Abre una terminal en la carpeta del proyecto.
 
 ```bash
 python -m venv .venv
-.venv\Scripts\activate
-pip install pillow numpy fastapi "uvicorn[standard]" pytest
+.venv\Scripts\activate                  # Windows
+source .venv/bin/activate               # Linux o macOS
+pip install -r requirements.txt
 ```
-
-En Linux o macOS, la segunda línea es `source .venv/bin/activate`.
 
 Descarga la decompilación **al lado** de la carpeta del proyecto:
 
@@ -50,7 +49,18 @@ git clone --depth 1 https://github.com/pret/pokeemerald.git ../pokeemerald
 
 ## 3. Preparar los mapas (una sola vez)
 
-Tres comandos, en este orden. Tardan menos de un minuto en total.
+Un solo comando. Tarda menos de un minuto.
+
+```bash
+python tools/setup.py
+```
+
+Comprueba que tienes las dependencias, busca el clon de `pokeemerald` al lado
+de la carpeta del proyecto y, si no lo encuentra, te pide la ruta. Después
+encadena los tres pasos enseñando el progreso de cada uno. Si lo vuelves a
+lanzar, salta lo que ya esté hecho; con `--force` lo rehace todo.
+
+Por dentro son estos tres comandos, que también puedes lanzar por separado:
 
 ```bash
 python tools/build_data.py   --pokeemerald ../pokeemerald
@@ -117,7 +127,8 @@ Ya está. Camina y el mapa se irá abriendo solo.
   y con su nombre encima.
 
 Un mapa **apagado** es un sitio donde no has estado: ves su silueta pero no lo
-que hay dentro. Cuando lo pisas, aparece dibujado.
+que hay dentro. Cuando lo pisas, aparece dibujado. (Con el modo *Mundo
+visible*, que se explica más abajo, lo ves desde el principio pero atenuado.)
 
 ### Los controles
 
@@ -126,10 +137,20 @@ que hay dentro. Cuando lo pisas, aparece dibujado.
 | Acercar y alejar | rueda del ratón |
 | Moverse | arrastrar |
 | Ver las puertas de un mapa | clic encima |
+| **Ir al otro lado de una puerta** | clic en su punto verde |
 | Volver a ver todo | botón **Ver todo** |
 
 Al acercarte lo suficiente aparecen los puntos de las puertas: **grises** las
 que no has probado, **verdes** las que ya sabes a dónde llevan.
+
+### Saltar de un extremo a otro
+
+Acerca hasta que se vean los puntos y pon el ratón sobre uno **verde**: se
+resalta él, se resalta su línea y se marca también el punto del otro extremo,
+así que ves a dónde vas antes de pulsar. Al hacer clic, la cámara viaja hasta
+allí; si el salto es largo se aleja por el camino y vuelve a acercarse, para
+que no pierdas el sentido de la distancia. Como al llegar sigues viendo los
+puntos, puedes encadenar saltos e ir recorriendo la cadena de puertas.
 
 ### Las líneas
 
@@ -147,12 +168,18 @@ que no has probado, **verdes** las que ya sabes a dónde llevan.
 - **Puertas sin probar**: lo que te queda pendiente en sitios que ya conoces.
   Pulsa una entrada y la cámara va allí.
 - **Vista**:
-  - *Revelar todo el mapa* destapa Hoenn entera. **Es solo para mirar**: no
-    te dice a dónde va ninguna puerta, pero te enseña sitios en los que aún
-    no has estado.
+  - *Modo del mapa* elige entre las dos formas de jugar:
+    - **Exploración**: el terreno aparece según lo pisas. Es lo de siempre.
+    - **Mundo visible**: Hoenn entera se ve desde el principio, pero **lo que
+      no has pisado sale atenuado** y se ilumina al llegar. Sirve para
+      orientarte si ya te sabes el mapa. En los dos modos las puertas y sus
+      conexiones se descubren igual: el modo **no destripa nada**, ni siquiera
+      te enseña dónde hay puertas en los sitios donde no has estado.
   - *Dibujar conexiones* oculta las líneas si te molestan.
-  - *Seguir al jugador* mantiene la cámara sobre ti. Se apaga solo en cuanto
-    arrastras el mapa a mano.
+  - *Seguir al jugador* acerca la cámara y te sigue a ti mientras andas. Se
+    apaga solo si arrastras el mapa o pulsas *Ver todo*; hacer zoom con la
+    rueda **no** lo apaga, porque mirar más de cerca no es dejar de seguirte.
+  - Las tres se recuerdan para la próxima vez que abras el asistente.
 - **Exportar** descarga en JSON todo lo que llevas descubierto, con los
   nombres en claro.
 
@@ -209,11 +236,23 @@ navegador carga las imágenes a resolución completa.
 
 ## 8. Otras cosas
 
-### Empezar una partida nueva
+### Varias partidas a la vez
 
-Tu progreso está en `runs/default.json`. Para archivarlo, renómbralo (por
-ejemplo a `runs/partida-1.json.bak`); el asistente creará uno nuevo al
-arrancar. Para vaciarlo sin cerrar nada:
+El apartado **Partida** del panel lo gestiona todo, sin tocar ficheros:
+
+- **Nueva** empieza una partida en blanco y se cambia a ella.
+- El desplegable cambia entre las que tengas, con su progreso debajo.
+- **Renombrar** te deja llamarlas por la seed, no por un número.
+- **Borrar** pide confirmación diciéndote cuánto progreso pierdes.
+- **Guardar copia** descarga la partida entera, y **Importar** la recupera.
+  Es el formato bueno para respaldar o compartir: el botón *Exportar* de más
+  abajo da un informe legible, pensado para leerlo, que no sirve para volver.
+
+Cada partida vive en su `runs/<nombre>.json`. Cambiar de partida mientras
+juegas es seguro: el asistente olvida por dónde ibas, de modo que no se
+inventa una puerta entre el último sitio de una y el primero de la otra.
+
+Para vaciar la partida actual sin crear otra:
 
 ```bash
 curl -X POST http://127.0.0.1:8000/api/reset

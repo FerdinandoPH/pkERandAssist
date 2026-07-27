@@ -141,10 +141,10 @@ def parse_behaviors(pe: Path) -> list[str]:
     return names
 
 
-def main() -> int:
+def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--pokeemerald", help="ruta al clon de pret/pokeemerald")
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
     pe = resolve_pokeemerald(args.pokeemerald)
 
     overrides = load_overrides(DATA_DIR.parent / "i18n" / "es_overrides.json")

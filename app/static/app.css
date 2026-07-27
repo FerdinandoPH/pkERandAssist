@@ -27,6 +27,7 @@ html, body {
   cursor: grab;
 }
 #canvas.dragging { cursor: grabbing; }
+#canvas.pointing { cursor: pointer; }
 
 #panel {
   position: fixed;
@@ -137,6 +138,34 @@ html, body {
 .toggle { display: flex; gap: 8px; align-items: center; margin-bottom: 6px; cursor: pointer; }
 .toggle input { accent-color: var(--accent); }
 
+.field { display: block; margin-bottom: 10px; }
+.field span {
+  display: block;
+  margin-bottom: 4px;
+  color: var(--muted);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: .1em;
+}
+.field select {
+  width: 100%;
+  padding: 5px 8px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: #1d232c;
+  color: var(--text);
+  font: inherit;
+  cursor: pointer;
+}
+.field select:hover { border-color: var(--accent); }
+
+/* Modo activo: se ve encendido de un vistazo, porque se apaga solo. */
+.toggle-btn[aria-pressed="true"] {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: #16281f;
+}
+
 button {
   margin-top: 8px;
   padding: 6px 12px;
@@ -148,6 +177,22 @@ button {
   cursor: pointer;
 }
 button:hover { border-color: var(--accent); }
+
+.row { display: flex; gap: 6px; flex-wrap: wrap; }
+.row button { flex: 1; min-width: 78px; padding: 5px 8px; }
+
+#run-select {
+  width: 100%;
+  padding: 5px 8px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: #1d232c;
+  color: var(--text);
+  font: inherit;
+  cursor: pointer;
+}
+#run-select:hover { border-color: var(--accent); }
+#run-progress { margin-bottom: 4px; }
 
 #panel footer { margin-top: 20px; }
 

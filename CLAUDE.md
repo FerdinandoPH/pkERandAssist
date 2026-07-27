@@ -39,12 +39,27 @@ En el gimnasio de Algaria los teletransportes llevan al **mismo mapa**
 cosas: cambio de mapa, cambio de `warp_id`, o salto de posición imposible.
 Quitar cualquiera de las tres pierde casos reales.
 
+**5. Ver el terreno y saber qué sitio es son cosas distintas.**
+`terrainVisible()` e `identityKnown()` en `app.js` no son redundantes. El modo
+«mundo visible» enseña el terreno de Hoenn (que el jugador ya se sabe), pero
+**el nombre y los círculos de las puertas de un mapa no pisado siguen
+ocultos**: dirían dónde hay puertas antes de llegar. Fundirlas otra vez en un
+solo predicado destriparía la partida.
+
+**6. Cambiar de partida no puede reasignar el objeto `Run`.**
+El tracker guarda una referencia (`build_tracker(run, ...)` en `server.py`),
+así que `Run.switch_to()` recarga el contenido **dentro del mismo objeto**. Lo
+cubre `test_switch_to_conserva_el_objeto`, que compara `id()`. Y hay que
+llamar a `Tracker.forget_history()` al cambiar, o la última lectura de una
+partida se compara con la primera de la otra y se inventa una puerta.
+
 ---
 
 ## Comandos
 
 ```bash
 # Preparar (una vez, o tras cambiar traducciones / actualizar pokeemerald)
+python tools/setup.py                   # guiado; encadena los tres de abajo
 python tools/build_data.py   --pokeemerald ../pokeemerald
 python tools/render_maps.py  --pokeemerald ../pokeemerald
 python tools/build_layout.py
@@ -53,13 +68,15 @@ python tools/build_layout.py
 uvicorn app.server:app                  # http://127.0.0.1:8000
 
 # Probar
-pytest                                  # 10 tests, sin emulador
-python tools/simulate.py                # finge ser mGBA end-to-end
+pytest                                  # 44 tests, sin emulador
+python tools/simulate.py --walk 300 --delay 0.5   # finge ser mGBA end-to-end
 python tools/preview_world.py --scale 16 --out mapa.png
 ```
 
-El intérprete está en `.venv/Scripts/python.exe` (Windows). Python 3.14,
-Pillow 12, numpy 2.5, FastAPI 0.140.
+El intérprete está en `.venv/bin/python` (Linux/WSL2) o
+`.venv/Scripts/python.exe` (Windows). El proyecto debe seguir funcionando en
+las dos plataformas: nada de rutas con `\`, usar `pathlib`. Python 3.12+
+(3.12.3 en WSL2, 3.14 en Windows), Pillow 12, numpy 2.5, FastAPI 0.140.
 
 `uvicorn --reload` **no** conviene: el puente TCP se ata al puerto 8765 y un
 recargado deja el puerto ocupado. Reiniciar a mano.
@@ -147,6 +164,10 @@ Están todas resueltas, pero si algo se toca conviene saberlas:
 | `METATILE_ID_MASK` | `0x03FF` | bits 0-9 del blockdata |
 | `NUM_METATILES_IN_PRIMARY` | 512 | ≥512 → tileset secundario |
 | `NUM_PALS_IN_PRIMARY` | 6 | paletas 0-5 primario, 6-12 secundario |
+| `DIM_ALPHA` (js) | 0.32 | atenuación del terreno sin pisar. El lienzo es `alpha:false` con el fondo ya pintado, así que el alpha mezcla con él: oscurece **y** desatura de una pasada. `ctx.filter='grayscale'` se descartó: se recompila por llamada y aquí son decenas por fotograma |
+| `MAX_INFLIGHT` (js) | 8 | el modo mundo pide los 441 mapas a la vez. Son solo ~1,8 MB (mipmap `.16`), pero 441 peticiones simultáneas saturan el navegador |
+| `CHASE_TAU` (js) | 0.13 s | seguimiento por lerp exponencial y **no** por tween: llega una lectura cada 4 frames (~15/s) y un tween reiniciado 15 veces por segundo no termina nunca |
+| `FOLLOW_SCALE` (js) | 1.0 | a escala 1 un píxel de mundo es uno de pantalla; con `imageSmoothingEnabled=false`, cualquier escala fraccionaria da aliasing feo |
 
 ---
 
@@ -168,6 +189,9 @@ mapas serían inviables.
 | Quiero... | Voy a... |
 |---|---|
 | cambiar cómo se detectan las puertas | `app/tracker.py` + test en `tests/test_tracker.py` |
+| tocar la gestión de partidas | `app/state.py` + test en `tests/test_state.py`; los endpoints en `app/server.py` |
+| mover la cámara desde código | `centerAt`/`cameraTo` (salto puntual) o `setChaseTarget` (perseguir algo que se mueve) en `app.js`. **No** escribir `camera.x/y` a mano: `centerAt` es el único sitio |
+| añadir algo pinchable en el lienzo | `endpointAt` en `app.js` es el patrón: prioridad en `pointerup` antes de `mapAt`, y el radio de acierto sale de la misma función que usa el dibujado |
 | cambiar la disposición del lienzo | `tools/build_layout.py`, luego `preview_world.py` para verlo |
 | cambiar el dibujado | `app/static/app.js` (`draw`, `drawMap`, `drawLinks`) |
 | añadir datos extraídos | `tools/build_data.py`, con su comprobación de coherencia |
@@ -188,16 +212,40 @@ Al tocar el render o el layout, **mirar el resultado**, no solo que no falle:
 python tools/preview_world.py --scale 16 --out /tmp/check.png
 ```
 
-Para la interfaz sirve una captura headless con Edge. **Borrar antes
-`--user-data-dir`**: una captura con perfil cacheado sirvió un `app.js` viejo
-y pareció un bug del código que no existía.
+Para la interfaz, captura headless con el **Edge de Windows** (en WSL2 está en
+`/mnt/c/Program Files (x86)/Microsoft/Edge/Application/msedge.exe`). Es un
+proceso de Windows: necesita rutas `C:\` para `--user-data-dir` y
+`--screenshot` (las UNC `\\wsl.localhost\...` fallan en silencio), y luego se
+copia el PNG de vuelta. Alcanza el servidor de WSL2 por `localhost` sin
+configurar nada.
+
+**Borrar antes `--user-data-dir`**: una captura con perfil cacheado sirvió un
+`app.js` viejo y pareció un bug del código que no existía.
+
+Tres trampas más de la captura headless, todas sufridas:
+
+- **`--virtual-time-budget` no espera al WebSocket.** Adelanta el reloj de la
+  página y sí pausa mientras haya `fetch` HTTP pendientes, pero los mensajes
+  del WS no llegan nunca dentro de la ventana. Por eso `/api/state` incluye
+  `player` con la última posición conocida: sin eso no hay forma de comprobar
+  el seguimiento en una captura. **Sin** ese flag es peor: la captura se hace
+  al evento `load`, antes de que terminen los `fetch`, y sale el lienzo negro.
+- Los PNG pueden llegar justo al agotarse el reloj virtual y quedar sin
+  pintar. Si el terreno sale en niebla en una captura pero las peticiones
+  aparecen en el log del servidor, es eso y no un fallo.
+- **`chromium` de Linux no carga ninguna URL http en este WSL2** (ni con
+  `--no-sandbox`, que sí hace falta para que arranque): se cuelga hasta con un
+  `python -m http.server`. Usar Edge.
+
+Lo que la captura **no** puede comprobar, porque no hay ratón: el resaltado al
+pasar por encima de un extremo de puerta y el salto al otro lado.
 
 ---
 
 ## Estado y pendientes
 
 Terminado y verificado sin ROM: extracción, render, ensamblado, puente,
-tracker, interfaz, 10 tests en verde.
+tracker, interfaz, gestión de partidas, 44 tests en verde.
 
 **Sin validar contra la ROM real** (requiere al usuario):
 

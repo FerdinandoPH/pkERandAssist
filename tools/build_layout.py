@@ -127,11 +127,11 @@ def shelf_pack(
     return placed, used_width, y + shelf_height
 
 
-def main() -> int:
+def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--band-width", type=int, default=BAND_WIDTH,
                         help="ancho de la banda de interiores, en metatiles")
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
 
     maps = {m["id"]: m for m in load_json(DATA_DIR / "maps.json")["maps"]}
     layouts = load_json(DATA_DIR / "layouts.json")

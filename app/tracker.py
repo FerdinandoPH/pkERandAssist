@@ -139,6 +139,31 @@ class Tracker:
                 self.on_event(event)
         return events
 
+    def forget_history(self) -> None:
+        """Olvida por donde ibas. Se llama al cambiar de partida.
+
+        El historial pertenece a la partida anterior: comparar la ultima
+        lectura de una con la primera de otra inventaria una transicion que no
+        ha ocurrido.
+        """
+        self.history.clear()
+        self.current = None
+        self.current_map = None
+
+    def last_player(self) -> dict | None:
+        """Ultima posicion conocida, con la misma forma que el evento player.
+
+        Sirve para que recargar la pagina en mitad de una partida no borre el
+        marcador ni el "ahora mismo" hasta la siguiente lectura.
+        """
+        if self.current is None or self.current_map is None:
+            return None
+        return {
+            "type": "player", "map": self.current_map,
+            "x": self.current.x, "y": self.current.y,
+            "warp": self.current.warp_id,
+        }
+
     def _detect(
         self, previous: Sample, previous_map: str, sample: Sample, map_id: str
     ) -> Transition | None:

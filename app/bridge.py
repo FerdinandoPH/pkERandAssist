@@ -115,20 +115,18 @@ class BridgeServer:
 
 
 def build_tracker(run, on_event=None) -> Tracker:
-    """Monta un Tracker con los datos estaticos ya generados."""
-    from pathlib import Path
+    """Monta un Tracker con los datos estaticos ya generados.
 
-    data_dir = Path(__file__).resolve().parent.parent / "data" / "static"
+    Lanza DataMissing si faltan: antes reventaba con un FileNotFoundError
+    crudo al importar app.server, y el aviso amable no llegaba a verse.
+    """
+    from app.datafiles import DATA_DIR, load_json
 
-    def read(name: str):
-        with open(data_dir / name, encoding="utf-8") as fh:
-            return json.load(fh)
-
-    warp_tiles_path = data_dir / "warp_tiles.json"
+    warp_tiles_path = DATA_DIR / "warp_tiles.json"
     return Tracker(
-        maps=read("maps.json")["maps"],
-        warps=read("warps.json"),
-        warp_tiles=read("warp_tiles.json") if warp_tiles_path.is_file() else {},
+        maps=load_json("maps.json")["maps"],
+        warps=load_json("warps.json"),
+        warp_tiles=load_json("warp_tiles.json") if warp_tiles_path.is_file() else {},
         on_event=on_event,
         run=run,
     )

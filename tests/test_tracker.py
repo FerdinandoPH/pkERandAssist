@@ -244,3 +244,39 @@ def test_indice_de_mapa_desconocido_se_ignora(make_tracker):
     tracker, run = make_tracker
     assert tracker.replay([Sample(99, 99, -1, 0, 0)]) == []
     assert run.visited == {}
+
+
+def test_cambiar_de_partida_no_inventa_una_transicion(make_tracker, at):
+    """Al cambiar de partida hay que olvidar por donde ibas.
+
+    Si no, la ultima lectura de la partida anterior se compara con la primera
+    de la nueva y se registra una puerta entre dos sitios por los que nunca se
+    ha pasado seguidos.
+    """
+    tracker, run = make_tracker
+    tracker.replay([
+        at(BRENDANS_1F, 9, 7, warp=2),
+        at(BRENDANS_1F, 9, 8, warp=2),    # pisando la puerta
+    ])
+
+    tracker.forget_history()
+    run.switch_to("otra")
+
+    events = tracker.replay([at(MOSSDEEP_GYM, 7, 35, warp=1)])
+    assert links_of(events) == []
+    assert specials_of(events) == []
+    assert run.links == {}
+
+
+def test_ultima_posicion_conocida(make_tracker, at):
+    """Recargar la pagina no debe perder donde estabas."""
+    tracker, _ = make_tracker
+    assert tracker.last_player() is None
+
+    tracker.replay([at(LITTLEROOT, 5, 9, warp=1)])
+    assert tracker.last_player() == {
+        "type": "player", "map": LITTLEROOT, "x": 5, "y": 9, "warp": 1,
+    }
+
+    tracker.forget_history()
+    assert tracker.last_player() is None

@@ -15,6 +15,22 @@
       <div id="link-status" class="status offline">emulador sin conectar</div>
     </header>
 
+    <section id="run-box">
+      <h2>Partida</h2>
+      <select id="run-select"></select>
+      <p class="muted" id="run-progress"></p>
+      <div class="row">
+        <button id="btn-run-new">Nueva</button>
+        <button id="btn-run-rename">Renombrar</button>
+        <button id="btn-run-delete">Borrar</button>
+      </div>
+      <div class="row">
+        <button id="btn-run-import">Importar</button>
+        <button id="btn-run-save">Guardar copia</button>
+      </div>
+      <input type="file" id="run-file" accept="application/json" hidden>
+    </section>
+
     <section id="current">
       <h2>Ahora mismo</h2>
       <p class="map-name" id="current-map">-</p>
@@ -45,15 +61,17 @@
 
     <section>
       <h2>Vista</h2>
-      <label class="toggle">
-        <input type="checkbox" id="opt-reveal"> Revelar todo el mapa
+      <label class="field">
+        <span>Modo del mapa</span>
+        <select id="opt-mode">
+          <option value="explore">Exploracion</option>
+          <option value="world">Mundo visible</option>
+        </select>
       </label>
       <label class="toggle">
-        <input type="checkbox" id="opt-links" checked> Dibujar conexiones
+        <input type="checkbox" id="opt-links"> Dibujar conexiones
       </label>
-      <label class="toggle">
-        <input type="checkbox" id="opt-follow" checked> Seguir al jugador
-      </label>
+      <button id="btn-follow" class="toggle-btn" aria-pressed="true">Seguir al jugador</button>
       <button id="btn-fit">Ver todo</button>
       <button id="btn-export">Exportar</button>
     </section>

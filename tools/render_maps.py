@@ -171,12 +171,12 @@ def render_layout(blocks: np.ndarray, atlas: np.ndarray) -> Image.Image:
     return Image.fromarray(canvas, mode="RGBA")
 
 
-def main() -> int:
+def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--pokeemerald", help="ruta al clon de pret/pokeemerald")
     parser.add_argument("--only", help="renderizar solo este LAYOUT_ID")
     parser.add_argument("--no-mipmaps", action="store_true")
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
 
     pe = resolve_pokeemerald(args.pokeemerald)
     layouts = load_json(DATA_DIR / "layouts.json")

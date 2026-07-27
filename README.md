@@ -36,8 +36,9 @@ Lo que sigue es la versión rápida.
 
 ```bash
 python -m venv .venv
-.venv\Scripts\activate            # en Linux/macOS: source .venv/bin/activate
-pip install pillow numpy fastapi "uvicorn[standard]" pytest
+.venv\Scripts\activate                  # Windows
+source .venv/bin/activate               # Linux o macOS
+pip install -r requirements.txt
 
 git clone --depth 1 https://github.com/pret/pokeemerald.git ../pokeemerald
 ```
@@ -45,13 +46,21 @@ git clone --depth 1 https://github.com/pret/pokeemerald.git ../pokeemerald
 Genera los datos y las imágenes (una sola vez, tarda menos de un minuto):
 
 ```bash
+python tools/setup.py
+```
+
+Te pregunta dónde está el clon de `pokeemerald` si no lo encuentra al lado, y
+encadena los tres pasos. Se puede repetir sin miedo: salta lo que ya esté
+hecho, salvo que le pases `--force`. Al terminar tendrás 518 mapas, 1313
+puertas y unos 15 MB de imágenes en `assets/layouts/`.
+
+Si prefieres lanzar los pasos por separado:
+
+```bash
 python tools/build_data.py   --pokeemerald ../pokeemerald   # datos de mapas y puertas
 python tools/render_maps.py  --pokeemerald ../pokeemerald   # 441 mapas a PNG + mipmaps
 python tools/build_layout.py                                # ensambla el lienzo
 ```
-
-Cada uno avisa si algo no cuadra. Al terminar tendrás 518 mapas, 1313 puertas
-y unos 15 MB de imágenes en `assets/layouts/`.
 
 ## Jugar con el asistente
 
