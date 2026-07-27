@@ -34,13 +34,30 @@ Lo que sigue es la versión rápida.
 
 ## Puesta en marcha
 
+Descarga la decompilación al lado de la carpeta del proyecto y arranca:
+
+```bash
+git clone --depth 1 https://github.com/pret/pokeemerald.git ../pokeemerald
+```
+
+| Windows | Linux o macOS |
+|---|---|
+| doble clic en `Iniciar.bat` | `./iniciar.sh` |
+
+Eso es todo. El lanzador crea el entorno virtual, instala las dependencias,
+genera los datos y las imágenes si faltan, levanta el servidor y abre el
+navegador. La primera vez tarda un par de minutos; las siguientes, nada. Por
+dentro es `python launcher.py`, que acepta `--port`, `--no-browser`,
+`--force-setup` y `--setup-only`.
+
+El resto de esta sección es lo mismo paso a paso, por si prefieres controlarlo
+tú o algo falla.
+
 ```bash
 python -m venv .venv
 .venv\Scripts\activate                  # Windows
 source .venv/bin/activate               # Linux o macOS
 pip install -r requirements.txt
-
-git clone --depth 1 https://github.com/pret/pokeemerald.git ../pokeemerald
 ```
 
 Genera los datos y las imágenes (una sola vez, tarda menos de un minuto):
@@ -64,13 +81,13 @@ python tools/build_layout.py                                # ensambla el lienzo
 
 ## Jugar con el asistente
 
-1. Arranca el servidor:
+1. Arranca el asistente (`Iniciar.bat`, `./iniciar.sh`, o a mano):
 
    ```bash
    uvicorn app.server:app
    ```
 
-2. Abre <http://127.0.0.1:8000> en el navegador.
+2. Abre <http://127.0.0.1:8000> en el navegador (el lanzador lo hace solo).
 
 3. En mGBA, con la ROM ya cargada: **Tools → Scripting… → File → Load script**
    y elige `bridge/pker_bridge.lua`. En la consola del script debería aparecer
@@ -117,11 +134,15 @@ python tools/simulate.py        # en otra
 ## Cómo está montado
 
 ```
+launcher.py             prepara lo que falte y arranca el servidor
+Iniciar.bat/iniciar.sh  el mismo lanzador, a doble clic
+
 tools/build_data.py     pokeemerald -> data/static/*.json
 tools/render_maps.py    pokeemerald -> assets/layouts/*.png (+ mipmaps .4 y .16)
 tools/build_layout.py   ensambla Hoenn por sus `connections` y empaqueta interiores
 tools/preview_world.py  vuelca el lienzo entero a un PNG, para revisarlo
 tools/simulate.py       finge ser el emulador
+tools/build_exe.py      congela launcher.py con PyInstaller (opcional)
 
 bridge/pker_bridge.lua     script que corre dentro de mGBA
 bridge/pker_calibrate.lua  busca gSaveBlock1Ptr si hiciera falta

@@ -58,6 +58,9 @@ partida se compara con la primera de la otra y se inventa una puerta.
 ## Comandos
 
 ```bash
+# Todo en uno para el usuario final: prepara lo que falte y arranca
+python launcher.py                      # = Iniciar.bat / iniciar.sh
+
 # Preparar (una vez, o tras cambiar traducciones / actualizar pokeemerald)
 python tools/setup.py                   # guiado; encadena los tres de abajo
 python tools/build_data.py   --pokeemerald ../pokeemerald
@@ -68,7 +71,7 @@ python tools/build_layout.py
 uvicorn app.server:app                  # http://127.0.0.1:8000
 
 # Probar
-pytest                                  # 44 tests, sin emulador
+pytest                                  # 57 tests, sin emulador
 python tools/simulate.py --walk 300 --delay 0.5   # finge ser mGBA end-to-end
 python tools/preview_world.py --scale 16 --out mapa.png
 ```
@@ -192,6 +195,7 @@ mapas serían inviables.
 | tocar la gestión de partidas | `app/state.py` + test en `tests/test_state.py`; los endpoints en `app/server.py` |
 | mover la cámara desde código | `centerAt`/`cameraTo` (salto puntual) o `setChaseTarget` (perseguir algo que se mueve) en `app.js`. **No** escribir `camera.x/y` a mano: `centerAt` es el único sitio |
 | añadir algo pinchable en el lienzo | `endpointAt` en `app.js` es el patrón: prioridad en `pointerup` antes de `mapAt`, y el radio de acierto sale de la misma función que usa el dibujado |
+| cambiar cómo arranca para el usuario final | `launcher.py` (solo stdlib: corre con el Python del sistema, antes de que exista el venv) + test en `tests/test_launcher.py`; los dos wrappers solo buscan un Python |
 | cambiar la disposición del lienzo | `tools/build_layout.py`, luego `preview_world.py` para verlo |
 | cambiar el dibujado | `app/static/app.js` (`draw`, `drawMap`, `drawLinks`) |
 | añadir datos extraídos | `tools/build_data.py`, con su comprobación de coherencia |
@@ -245,7 +249,7 @@ pasar por encima de un extremo de puerta y el salto al otro lado.
 ## Estado y pendientes
 
 Terminado y verificado sin ROM: extracción, render, ensamblado, puente,
-tracker, interfaz, gestión de partidas, 44 tests en verde.
+tracker, interfaz, gestión de partidas, lanzador, 57 tests en verde.
 
 **Sin validar contra la ROM real** (requiere al usuario):
 

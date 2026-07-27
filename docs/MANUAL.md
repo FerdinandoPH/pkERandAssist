@@ -30,24 +30,31 @@ solo lee la memoria del emulador mientras juegas.
 
 ## 2. Instalación (una sola vez)
 
-Abre una terminal en la carpeta del proyecto.
-
-```bash
-python -m venv .venv
-.venv\Scripts\activate                  # Windows
-source .venv/bin/activate               # Linux o macOS
-pip install -r requirements.txt
-```
-
 Descarga la decompilación **al lado** de la carpeta del proyecto:
 
 ```bash
 git clone --depth 1 https://github.com/pret/pokeemerald.git ../pokeemerald
 ```
 
+Y ya está: el resto lo hace el propio asistente la primera vez que lo abres.
+
+> **Si prefieres montarlo a mano** (o el lanzador te da problemas), abre una
+> terminal en la carpeta del proyecto:
+>
+> ```bash
+> python -m venv .venv
+> .venv\Scripts\activate                  # Windows
+> source .venv/bin/activate               # Linux o macOS
+> pip install -r requirements.txt
+> ```
+
 ---
 
 ## 3. Preparar los mapas (una sola vez)
+
+**No hace falta que hagas nada aquí**: la primera vez que abras el asistente
+(paso 4) los prepara solo. Esta sección explica qué está pasando mientras
+tanto, y cómo lanzarlo por separado si quieres.
 
 Un solo comando. Tarda menos de un minuto.
 
@@ -93,17 +100,32 @@ lanzar estos tres comandos.
 
 Cada vez que te sientes a jugar, tres pasos:
 
-**1. Arranca el asistente.**
+**1. Arranca el asistente.** Doble clic en:
 
-```bash
-uvicorn app.server:app
-```
+| Windows | Linux o macOS |
+|---|---|
+| `Iniciar.bat` | `iniciar.sh` |
 
-Déjalo abierto en su terminal.
+Se abre una ventana negra que va contando lo que hace. **La primera vez** crea
+el entorno, instala las dependencias y prepara los mapas (ahí es donde puede
+pedirte la ruta de `pokeemerald`: la pegas y pulsas Enter); tarda un par de
+minutos. Las siguientes veces arranca directamente.
+
+Deja esa ventana abierta mientras juegas: es el asistente. Para cerrarlo,
+Ctrl+C ahí dentro.
+
+> En Linux, si el doble clic no hace nada, el archivo no tiene permiso de
+> ejecución: `chmod +x iniciar.sh`. Desde terminal, `./iniciar.sh`.
+>
+> Lanzarlo a mano equivale a `python launcher.py`, y este a su vez a activar
+> el entorno y ejecutar `uvicorn app.server:app`. Acepta `--port 8001` si el
+> puerto está ocupado (aunque él solo busca el siguiente libre),
+> `--no-browser` y `--force-setup` para regenerar los mapas.
 
 **2. Abre el mapa** en el navegador: <http://127.0.0.1:8000>
 
-Verás Hoenn a oscuras. Arriba a la derecha pondrá *emulador sin conectar*.
+Se abre solo al arrancar. Verás Hoenn a oscuras y, arriba a la derecha,
+*emulador sin conectar*.
 
 **3. Conecta el emulador.** En mGBA, **con la ROM ya cargada**:
 
@@ -202,9 +224,24 @@ extraídos.
 
 ## 7. Si algo no va
 
+### La ventana del lanzador se cierra o se queda en un error
+
+Lee el mensaje: está escrito para eso y termina diciendo qué hacer. Los tres
+habituales:
+
+- **«No encuentro Python instalado»** — instálalo desde <https://python.org>
+  y, en Windows, marca *Add Python to PATH*.
+- **«No he podido crear el entorno virtual»** — en Debian o Ubuntu falta el
+  paquete: `sudo apt install python3-venv`.
+- **«La preparación de los mapas no ha terminado bien»** — casi siempre es que
+  no encuentra el clon de `pokeemerald` (sección 2).
+
+Si el lanzador dejó los mapas a medias (por ejemplo, cerraste la ventana
+mientras los generaba), vuelve a arrancarlo: lo detecta y los rehace.
+
 ### El panel no sale de «emulador sin conectar»
 
-- ¿Está corriendo `uvicorn app.server:app`?
+- ¿Está abierta la ventana del asistente (`Iniciar.bat` / `iniciar.sh`)?
 - ¿Cargaste el script **después** de abrir la ROM?
 - Mira la ventana de scripting de mGBA: si pone `buscando el servidor`, es que
   el asistente no está levantado.

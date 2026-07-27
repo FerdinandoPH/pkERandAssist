@@ -11,6 +11,12 @@ data/static/
 # Progreso de las partidas.
 runs/
 
+# Salida de tools/build_exe.py (PyInstaller).
+dist/
+build/
+
 # Vuelcos de tools/preview_world.py.
 preview_*.png
 !preview_world.png
+
+.claude
